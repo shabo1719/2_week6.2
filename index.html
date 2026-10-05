@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+	<meta charset="utf-8">
+
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1"
+	>
+
+	<title>CIRCLE</title>
+
+
+	<style>
+
+		* {
+			box-sizing: border-box;
+		}
+
+
+		html,
+		body {
+
+			margin: 0;
+
+			width: 100%;
+			height: 100%;
+
+			overflow: hidden;
+
+			background: #f2f2f2;
+
+			font-family: Arial, sans-serif;
+
+		}
+
+
+		#screen {
+
+			position: relative;
+
+			width: 100vw;
+			height: 100vh;
+
+			overflow: hidden;
+
+			touch-action: none;
+
+			user-select: none;
+
+		}
+
+
+		
+
+		#guide {
+
+			position: absolute;
+
+			left: 3vw;
+			top: 3vh;
+
+			font-size: 18px;
+
+			font-weight: 700;
+
+			color: #111;
+
+			z-index: 100;
+
+			pointer-events: none;
+
+			user-select: none;
+
+		}
+
+
+		
+		#circleText {
+
+			position: absolute;
+
+			left: 3vw;
+			bottom: 13vh;
+
+			margin: 0;
+
+			font-size: 10vw;
+
+			font-weight: 900;
+
+			line-height: 0.8;
+
+			letter-spacing: -0.08em;
+
+			color: #111;
+
+			z-index: 100;
+
+			cursor: pointer;
+
+			pointer-events: auto;
+
+			user-select: none;
+
+			transition: transform 0.2s ease;
+		}
+
+		#circleText:hover {
+
+			transform: scale(1.05);
+
+		}
+
+
+		
+
+		#reset {
+
+			position: absolute;
+
+			right: 3vw;
+			top: 3vh;
+
+			padding: 8px 14px;
+
+			background: transparent;
+
+			border: 2px solid #111;
+			border-radius: 20px;
+
+			font-size: 14px;
+
+			font-weight: 900;
+
+			cursor: pointer;
+
+			z-index: 110;
+
+		}
+
+
+		#reset:hover {
+
+			background: #111;
+
+			color: white;
+
+		}
+
+
+
+		.circle {
+
+			position: absolute;
+
+			z-index: 10;
+
+			pointer-events: none;
+
+		}
+
+
+		.full-circle {
+
+			border-radius: 50%;
+
+		}
+
+
+		.stroke-circle {
+
+			overflow: visible;
+
+		}
+
+
+		.stroke-circle svg {
+
+			position: absolute;
+
+			left: 0;
+			top: 0;
+
+			width: 100%;
+			height: 100%;
+
+			overflow: visible;
+
+		}
+
+
+		.stroke-circle circle {
+
+			fill: none;
+
+			stroke-width: 5;
+
+		}
+
+
+
+		#drawingLine {
+
+			position: absolute;
+
+			height: 6px;
+
+			background: #111;
+
+			transform-origin: 0 50%;
+
+			display: none;
+
+			z-index: 90;
+
+			pointer-events: none;
+
+		}
+
+
+		.wall {
+
+			position: absolute;
+
+			height: 6px;
+
+			background: #111;
+
+			transform-origin: 0 50%;
+
+			z-index: 8;
+
+			pointer-events: none;
+
+		}
+
+
+	</style>
+
+</head>
+
+
+<body>
+
+
+<div id="screen">
+
+
+	<div id="guide">
+		DRAW THE LINE
+	</div>
+
+
+	<h1 id="circleText">
+		+CIRCLE
+	</h1>
+
+
+	<button id="reset">
+		RESET ↻
+	</button>
+
+
+	<div id="drawingLine"></div>
+
+
+</div>
+
+
+
+<script>
+
+
+
+
+
+const screen =
+	document.getElementById("screen");
+
+
+const drawingLine =
+	document.getElementById("drawingLine");
+
+
+const resetButton =
+	document.getElementById("reset");
+
+
+const circleText =
+	document.getElementById("circleText");
+
+
+
+const colors = [
+
+	"#ff3b30",
+	"#ff9500",
+	"#ffcc00",
+	"#34c759",
+	"#00c7be",
+	"#007aff",
+	"#5856d6",
+	"#ff2d55"
+
+];
+
+
+
+let circles = [];
+
+let walls = [];
+
+
+
+const MAX_CIRCLES = 120;
+
+
+
+let isDrawing = false;
+
+let startX = 0;
+let startY = 0;
+
+let currentX = 0;
+let currentY = 0;
+
+let lineFrame = null;
+
+
+
+function random(min, max) {
+
+	return Math.random() *
+		(max - min) + min;
+
+}
+
+
+function randomColor() {
+
+	return colors[
+		Math.floor(
+			Math.random() *
+			colors.length
+		)
+	];
+
+}
+
+
+
+
+function createCircle(
+
+	x,
+	y,
+
+	size,
+
+	color,
+
+	velocityX,
+	velocityY
+
+) {
+
+
+	if (
+		circles.length >= MAX_CIRCLES
+	) {
+
+		return;
+
+	}
+
+
+	let element =
+		document.createElement("div");
+
+
+	element.className =
+		"circle full-circle";
+
+
+	element.style.width =
+		size + "px";
+
+
+	element.style.height =
+		size + "px";
+
+
+	element.style.left =
+		(
+			x - size / 2
+		) + "px";
+
+
+	element.style.top =
+		(
+			y - size / 2
+		) + "px";
+
+
+	element.style.backgroundColor =
+		color;
+
+
+	screen.appendChild(
+		element
+	);
+
+
+	let circle = {
+
+		element: element,
+
+		x: x,
+		y: y,
+
+		size: size,
+
+		color: color,
+
+		type: "fill",
+
+		velocityX: velocityX,
+		velocityY: velocityY,
+
+		cooldown: 0
+
+	};
+
+
+	circles.push(
+		circle
+	);
+
+}
+
+
+
+function createStrokeCircle(
+
+	x,
+	y,
+
+	size,
+
+	color,
+
+	velocityX,
+	velocityY
+
+) {
+
+
+	if (
+		circles.length >= MAX_CIRCLES
+	) {
+
+		return;
+
+	}
+
+
+	let element =
+		document.createElement("div");
+
+
+	element.className =
+		"circle stroke-circle";
+
+
+	element.style.width =
+		size + "px";
+
+
+	element.style.height =
+		size + "px";
+
+
+	element.style.left =
+		(
+			x - size / 2
+		) + "px";
+
+
+	element.style.top =
+		(
+			y - size / 2
+		) + "px";
+
+
+	let svg =
+		document.createElementNS(
+
+			"http://www.w3.org/2000/svg",
+
+			"svg"
+
+		);
+
+
+	svg.setAttribute(
+		"viewBox",
+		"0 0 100 100"
+	);
+
+
+	let svgCircle =
+		document.createElementNS(
+
+			"http://www.w3.org/2000/svg",
+
+			"circle"
+
+		);
+
+
+	svgCircle.setAttribute(
+		"cx",
+		"50"
+	);
+
+
+	svgCircle.setAttribute(
+		"cy",
+		"50"
+	);
+
+
+	svgCircle.setAttribute(
+		"r",
+		"43"
+	);
+
+
+	svgCircle.setAttribute(
+		"stroke",
+		color
+	);
+
+
+	svgCircle.setAttribute(
+		"stroke-width",
+		"5"
+	);
+
+
+	svgCircle.setAttribute(
+		"fill",
+		"none"
+	);
+
+
+	svg.appendChild(
+		svgCircle
+	);
+
+
+	element.appendChild(
+		svg
+	);
+
+
+	screen.appendChild(
+		element
+	);
+
+
+	let circle = {
+
+		element: element,
+
+		x: x,
+		y: y,
+
+		size: size,
+
+		color: color,
+
+		type: "stroke",
+
+		velocityX: velocityX,
+		velocityY: velocityY,
+
+		cooldown: 0
+
+	};
+
+
+	circles.push(
+		circle
+	);
+
+}
+
+
+
+function createInitialCircles() {
+
+	for (let i = 0; i < 12; i++) {
+
+		let size;
+
+		let sizeRandom = Math.random();
+
+		if (sizeRandom < 0.55) {
+
+			size = random(18, 45);
+
+		}
+
+		else if (sizeRandom < 0.85) {
+
+			size = random(45, 80);
+
+		}
+
+		else {
+
+			size = random(80, 125);
+
+		}
+
+
+		let x =
+			random(
+				size / 2,
+				window.innerWidth - size / 2
+			);
+
+
+		let y =
+			random(
+				size / 2,
+				window.innerHeight * 0.55
+			);
+
+
+		let speed =
+			random(1.5, 3.5);
+
+
+		let angle =
+			random(0, Math.PI * 2);
+
+
+		let velocityX =
+			Math.cos(angle) * speed;
+
+
+		let velocityY =
+			Math.sin(angle) * speed;
+
+
+		/*
+
+			처음부터 Fill / Stroke를 섞음
+
+			Fill 70%
+			Stroke 30%
+
+		*/
+
+		if (Math.random() < 0.7) {
+
+			createCircle(
+
+				x,
+				y,
+
+				size,
+
+				randomColor(),
+
+				velocityX,
+				velocityY
+
+			);
+
+		}
+
+		else {
+
+			createStrokeCircle(
+
+				x,
+				y,
+
+				size,
+
+				randomColor(),
+
+				velocityX,
+				velocityY
+
+			);
+
+		}
+
+	}
+
+}
+
+
+
+function createBigCircle() {
+
+
+	if (
+		circles.length >= MAX_CIRCLES
+	) {
+
+		return;
+
+	}
+
+
+	let size =
+		random(
+			80,
+			160
+		);
+
+
+	let x =
+		random(
+
+			size / 2,
+
+			window.innerWidth -
+			size / 2
+
+		);
+
+
+	let y =
+		random(
+
+			size / 2,
+
+			window.innerHeight *
+			0.45
+
+		);
+
+
+	let speed =
+		random(
+			1.5,
+			3
+		);
+
+
+	let angle =
+		random(
+			0,
+			Math.PI * 2
+		);
+
+
+	createCircle(
+
+		x,
+		y,
+
+		size,
+
+		randomColor(),
+
+		Math.cos(angle) *
+		speed,
+
+		Math.sin(angle) *
+		speed
+
+	);
+
+}
+
+
+circleText.addEventListener(
+
+	"click",
+
+	function(event) {
+
+		event.stopPropagation();
+
+		createBigCircle();
+
+	}
+
+);
+
+
+
+function updateCircles() {
+
+
+	for (
+		let i = 0;
+		i < circles.length;
+		i++
+	) {
+
+
+		let circle =
+			circles[i];
+
+
+		let radius =
+			circle.size / 2;
+
+
+		let previousX =
+			circle.x;
+
+
+		let previousY =
+			circle.y;
+
+
+		
+
+		circle.x +=
+			circle.velocityX;
+
+
+		circle.y +=
+			circle.velocityY;
+
+
+	
+	
+		if (
+			circle.cooldown > 0
+		) {
+
+			circle.cooldown--;
+
+		}
+
+
+		
+
+		if (
+			circle.x - radius <= 0
+		) {
+
+			circle.x =
+				radius;
+
+			circle.velocityX =
+				Math.abs(
+					circle.velocityX
+				);
+
+		}
+
+
+		if (
+			circle.x + radius >=
+			window.innerWidth
+		) {
+
+			circle.x =
+				window.innerWidth -
+				radius;
+
+			circle.velocityX =
+				-Math.abs(
+					circle.velocityX
+				);
+
+		}
+
+
+		if (
+			circle.y - radius <= 0
+		) {
+
+			circle.y =
+				radius;
+
+			circle.velocityY =
+				Math.abs(
+					circle.velocityY
+				);
+
+		}
+
+
+
+		if (
+			circle.y + radius >=
+			window.innerHeight
+		) {
+
+			circle.y =
+				window.innerHeight -
+				radius;
+
+			circle.velocityY =
+				-Math.abs(
+					circle.velocityY
+				);
+
+		}
+
+
+		if (
+			circle.cooldown <= 0
+		) {
+
+
+			for (
+				let j = 0;
+				j < walls.length;
+				j++
+			) {
+
+
+				let wall =
+					walls[j];
+
+
+				if (
+					checkLineCollision(
+
+						circle,
+
+						wall,
+
+						previousX,
+
+						previousY
+
+					)
+				) {
+
+
+		
+
+					bounceFromLine(
+
+						circle,
+
+						wall
+
+					);
+
+
+					circle.cooldown =
+						10;
+
+
+		
+
+					splitCircle(
+						circle
+					);
+
+
+				
+					break;
+
+				}
+
+			}
+
+		}
+
+
+
+		circle.element.style.left =
+			(
+				circle.x -
+				radius
+			) + "px";
+
+
+		circle.element.style.top =
+			(
+				circle.y -
+				radius
+			) + "px";
+
+	}
+
+
+	requestAnimationFrame(
+		updateCircles
+	);
+
+}
+
+
+
+function checkLineCollision(
+
+	circle,
+
+	wall,
+
+	previousX,
+
+	previousY
+
+) {
+
+
+	let radius =
+		circle.size / 2;
+
+
+
+
+	let currentDistance =
+		pointToLineDistance(
+
+			circle.x,
+			circle.y,
+
+			wall.x1,
+			wall.y1,
+
+			wall.x2,
+			wall.y2
+
+		);
+
+
+
+	let previousDistance =
+		pointToLineDistance(
+
+			previousX,
+			previousY,
+
+			wall.x1,
+			wall.y1,
+
+			wall.x2,
+			wall.y2
+
+		);
+
+
+
+	let middleX =
+		(
+			previousX +
+			circle.x
+		) / 2;
+
+
+	let middleY =
+		(
+			previousY +
+			circle.y
+		) / 2;
+
+
+	let middleDistance =
+		pointToLineDistance(
+
+			middleX,
+			middleY,
+
+			wall.x1,
+			wall.y1,
+
+			wall.x2,
+			wall.y2
+
+		);
+
+
+	let collisionDistance =
+		radius + 6;
+
+
+	return (
+
+		currentDistance <=
+		collisionDistance
+
+		||
+
+		previousDistance <=
+		collisionDistance
+
+		||
+
+		middleDistance <=
+		collisionDistance
+
+	);
+
+}
+
+
+
+function pointToLineDistance(
+
+	px,
+	py,
+
+	x1,
+	y1,
+
+	x2,
+	y2
+
+) {
+
+
+	let dx =
+		x2 - x1;
+
+
+	let dy =
+		y2 - y1;
+
+
+	let lengthSquared =
+		dx * dx +
+		dy * dy;
+
+
+
+	if (
+		lengthSquared === 0
+	) {
+
+		return Math.sqrt(
+
+			Math.pow(
+				px - x1,
+				2
+			)
+
+			+
+
+			Math.pow(
+				py - y1,
+				2
+			)
+
+		);
+
+	}
+
+
+
+
+	let t =
+		(
+			(px - x1) * dx +
+			(py - y1) * dy
+		)
+		/
+		lengthSquared;
+
+
+	t =
+		Math.max(
+
+			0,
+
+			Math.min(
+				1,
+				t
+			)
+
+		);
+
+
+	let closestX =
+		x1 +
+		t * dx;
+
+
+	let closestY =
+		y1 +
+		t * dy;
+
+
+	return Math.sqrt(
+
+		Math.pow(
+			px - closestX,
+			2
+		)
+
+		+
+
+		Math.pow(
+			py - closestY,
+			2
+		)
+
+	);
+
+}
+
+
+
+function bounceFromLine(
+
+	circle,
+
+	wall
+
+) {
+
+
+	let dx =
+		wall.x2 -
+		wall.x1;
+
+
+	let dy =
+		wall.y2 -
+		wall.y1;
+
+
+	let length =
+		Math.sqrt(
+
+			dx * dx +
+			dy * dy
+
+		);
+
+
+	if (
+		length === 0
+	) {
+
+		return;
+
+	}
+
+
+
+	dx /=
+		length;
+
+
+	dy /=
+		length;
+
+
+
+
+	let normalX =
+		-dy;
+
+
+	let normalY =
+		dx;
+
+
+	
+	let dot =
+
+		circle.velocityX *
+		normalX
+
+		+
+
+		circle.velocityY *
+		normalY;
+
+
+	circle.velocityX =
+
+		circle.velocityX
+
+		-
+
+		2 *
+		dot *
+		normalX;
+
+
+	circle.velocityY =
+
+		circle.velocityY
+
+		-
+
+		2 *
+		dot *
+		normalY;
+
+
+	
+	circle.x +=
+		normalX * 5;
+
+
+	circle.y +=
+		normalY * 5;
+
+}
+
+
+function splitCircle(original) {
+
+
+
+	if (
+		original.size < 28
+	) {
+
+		return;
+
+	}
+
+
+
+	if (
+		circles.length >= MAX_CIRCLES - 2
+	) {
+
+		return;
+
+	}
+
+
+	
+
+	let speed =
+		Math.sqrt(
+
+			original.velocityX *
+			original.velocityX
+
+			+
+
+			original.velocityY *
+			original.velocityY
+
+		);
+
+
+
+
+	let angle =
+		Math.atan2(
+
+			original.velocityY,
+			original.velocityX
+
+		);
+
+
+
+
+	original.element.remove();
+
+
+	let index =
+		circles.indexOf(
+			original
+		);
+
+
+	if (
+		index !== -1
+	) {
+
+		circles.splice(
+			index,
+			1
+		);
+
+	}
+
+
+	let amount =
+		Math.random() < 0.7
+			? 1
+			: 2;
+
+
+	for (
+		let i = 0;
+		i < amount;
+		i++
+	) {
+
+
+		if (
+			circles.length >=
+			MAX_CIRCLES
+		) {
+
+			break;
+
+		}
+
+
+
+
+		let size =
+			original.size *
+			random(
+				0.35,
+				0.65
+			);
+
+
+		size =
+			Math.max(
+				12,
+				size
+			);
+
+
+
+		let newAngle =
+			angle +
+			random(
+				-1.2,
+				1.2
+			);
+
+
+
+		let newSpeed = random(1.5, 3.5);
+
+
+
+		let isFill =
+			Math.random() < 0.65;
+
+
+	
+		let offset =
+			original.size *
+			0.3;
+
+
+		let newX =
+
+			original.x
+
+			+
+
+			Math.cos(
+				newAngle
+			)
+			*
+			offset;
+
+
+		let newY =
+
+			original.y
+
+			+
+
+			Math.sin(
+				newAngle
+			)
+			*
+			offset;
+
+
+
+
+		if (
+			isFill
+		) {
+
+			createCircle(
+
+				newX,
+				newY,
+
+				size,
+
+				randomColor(),
+
+				Math.cos(
+					newAngle
+				)
+				*
+				newSpeed,
+
+				Math.sin(
+					newAngle
+				)
+				*
+				newSpeed
+
+			);
+
+		}
+
+
+	
+
+		else {
+
+			createStrokeCircle(
+
+				newX,
+				newY,
+
+				size,
+
+				randomColor(),
+
+				Math.cos(
+					newAngle
+				)
+				*
+				newSpeed,
+
+				Math.sin(
+					newAngle
+				)
+				*
+				newSpeed
+
+			);
+
+		}
+
+	}
+
+}
+
+
+
+function updateDrawingLine() {
+
+
+	if (
+		!isDrawing
+	) {
+
+		return;
+
+	}
+
+
+	let dx =
+		currentX -
+		startX;
+
+
+	let dy =
+		currentY -
+		startY;
+
+
+	let width =
+		Math.sqrt(
+
+			dx * dx +
+			dy * dy
+
+		);
+
+
+	let angle =
+		Math.atan2(
+			dy,
+			dx
+		)
+		*
+		180 /
+		Math.PI;
+
+
+	drawingLine.style.left =
+		startX + "px";
+
+
+	drawingLine.style.top =
+		startY + "px";
+
+
+	drawingLine.style.width =
+		width + "px";
+
+
+	drawingLine.style.transform =
+		"rotate(" +
+		angle +
+		"deg)";
+
+
+	lineFrame = null;
+
+}
+
+
+
+
+screen.addEventListener(
+
+	"pointerdown",
+
+	function(event) {
+
+
+	
+		if (
+			event.target.closest(
+				"#reset"
+			)
+		) {
+
+			return;
+
+		}
+
+
+		if (
+			event.target.closest(
+				"#circleText"
+			)
+		) {
+
+			return;
+
+		}
+
+
+		isDrawing =
+			true;
+
+
+		startX =
+			event.clientX;
+
+
+		startY =
+			event.clientY;
+
+
+		currentX =
+			startX;
+
+
+		currentY =
+			startY;
+
+
+	
+		try {
+
+			screen.setPointerCapture(
+				event.pointerId
+			);
+
+		}
+
+		catch (error) {}
+
+
+		drawingLine.style.display =
+			"block";
+
+
+		updateDrawingLine();
+
+	}
+
+);
+
+
+screen.addEventListener(
+
+	"pointermove",
+
+	function(event) {
+
+
+		if (
+			!isDrawing
+		) {
+
+			return;
+
+		}
+
+
+		currentX =
+			event.clientX;
+
+
+		currentY =
+			event.clientY;
+
+
+	
+
+		if (
+			lineFrame === null
+		) {
+
+			lineFrame =
+				requestAnimationFrame(
+					updateDrawingLine
+				);
+
+		}
+
+	}
+
+);
+
+
+
+screen.addEventListener(
+
+	"pointerup",
+
+	function(event) {
+
+
+		if (
+			!isDrawing
+		) {
+
+			return;
+
+		}
+
+
+		currentX =
+			event.clientX;
+
+
+		currentY =
+			event.clientY;
+
+
+		isDrawing =
+			false;
+
+
+		drawingLine.style.display =
+			"none";
+
+
+		if (
+			lineFrame !== null
+		) {
+
+			cancelAnimationFrame(
+				lineFrame
+			);
+
+			lineFrame = null;
+
+		}
+
+
+		let dx =
+			currentX -
+			startX;
+
+
+		let dy =
+			currentY -
+			startY;
+
+
+		let distance =
+			Math.sqrt(
+
+				dx * dx +
+				dy * dy
+
+			);
+
+
+		
+
+		if (
+			distance < 20
+		) {
+
+			return;
+
+		}
+
+
+		createWall(
+
+			startX,
+			startY,
+
+			currentX,
+			currentY
+
+		);
+
+	}
+
+);
+
+
+
+screen.addEventListener(
+
+	"pointercancel",
+
+	function() {
+
+
+		isDrawing =
+			false;
+
+
+		drawingLine.style.display =
+			"none";
+
+
+		if (
+			lineFrame !== null
+		) {
+
+			cancelAnimationFrame(
+				lineFrame
+			);
+
+			lineFrame = null;
+
+		}
+
+	}
+
+);
+
+
+
+
+function createWall(
+
+	x1,
+	y1,
+
+	x2,
+	y2
+
+) {
+
+
+	let element =
+		document.createElement(
+			"div"
+		);
+
+
+	element.className =
+		"wall";
+
+
+	screen.appendChild(
+		element
+	);
+
+
+	let wall = {
+
+		element: element,
+
+		x1: x1,
+		y1: y1,
+
+		x2: x2,
+		y2: y2
+
+	};
+
+
+	walls.push(
+		wall
+	);
+
+
+	updateWallVisual(
+		wall
+	);
+
+}
+
+
+
+function updateWallVisual(
+	wall
+) {
+
+
+	let dx =
+		wall.x2 -
+		wall.x1;
+
+
+	let dy =
+		wall.y2 -
+		wall.y1;
+
+
+	let width =
+		Math.sqrt(
+
+			dx * dx +
+			dy * dy
+
+		);
+
+
+	let angle =
+		Math.atan2(
+			dy,
+			dx
+		)
+		*
+		180 /
+		Math.PI;
+
+
+	wall.element.style.left =
+		wall.x1 + "px";
+
+
+	wall.element.style.top =
+		wall.y1 + "px";
+
+
+	wall.element.style.width =
+		width + "px";
+
+
+	wall.element.style.transform =
+		"rotate(" +
+		angle +
+		"deg)";
+
+}
+
+
+
+
+resetButton.addEventListener(
+
+	"click",
+
+	function(event) {
+
+
+		event.stopPropagation();
+
+
+	
+
+		for (
+			let i = 0;
+			i < circles.length;
+			i++
+		) {
+
+			circles[i]
+				.element
+				.remove();
+
+		}
+
+
+	
+
+		for (
+			let i = 0;
+			i < walls.length;
+			i++
+		) {
+
+			walls[i]
+				.element
+				.remove();
+
+		}
+
+
+		circles = [];
+
+		walls = [];
+
+
+
+
+		createInitialCircles();
+
+	}
+
+);
+
+
+
+
+createInitialCircles();
+
+updateCircles();
+
+
+</script>
+
+
+</body>
+</html>
